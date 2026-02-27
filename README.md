@@ -41,3 +41,24 @@
 
 * **Routing**: Installed `react-router-dom` to manage navigation between Home, Login, and Register views.
 * **API Communication**: Installed `axios` to handle asynchronous requests to the backend server.
+
+## Debugging Log & Milestone Verification
+<p>The development process involved iterative testing to ensure the security layer was airtight.</p>
+
+* **Issue 1: Missing Credentials**: Resolved a <code>401 Unauthorized</code> error by correctly configuring Postman to send the JWT in the Authorization header.
+* **Issue 2: ReferenceError**: Resolved a <code>500 Internal Server Error</code> caused by a missing <code>jsonwebtoken</code> import in the middleware.
+* **Final Validation**: Confirmed successful database entry with a <code>201 Created</code> response, verifying that the <code>author</code> ID is correctly extracted from the JWT payload.
+
+# Phase 1 Complete: Backend Infrastructure 
+<p>The MERN backend is fully operational, secured, and validated.</p>
+
+* **Authentication Success**: Verified the complete lifecycle of a JWT, from issuance at Login to validation in the <code>verifyToken</code> middleware.
+* **Resource Creation**: Successfully performed authenticated POST requests to the <code>/api/posts</code> endpoint.
+* **Relational Integrity**: Confirmed that posts are correctly mapped to their respective authors via MongoDB ObjectIDs.
+
+## Security & Content Workflow
+<p>Established a secure, authenticated authoring pipeline.</p>
+
+* **Client-Side Authorization**: Implemented automated token verification on component mount to prevent unauthorized access to authoring tools.
+* **JWT Integration**: Standardized API requests with Bearer Token headers, ensuring full compatibility with the backend's Passport/JWT middleware.
+* **Asynchronous UX**: Optimized the submission lifecycle with success-based navigation, routing users back to the global feed post-publication.
