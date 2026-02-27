@@ -56,9 +56,41 @@
 * **Resource Creation**: Successfully performed authenticated POST requests to the <code>/api/posts</code> endpoint.
 * **Relational Integrity**: Confirmed that posts are correctly mapped to their respective authors via MongoDB ObjectIDs.
 
+## Community Feed Implementation
+<p>Developed a dynamic content delivery system with granular access controls.</p>
+
+* **Ownership-Based Controls**: Integrated conditional logic to render 'Edit' and 'Delete' triggers only for the authenticated creator of a specific post.
+* **State-Driven Hydration**: Leveraged the useEffect hook for asynchronous data fetching, ensuring the feed remains synchronized with the MongoDB cluster.
+* **Defensive UI Patterns**: Incorporated modal confirmation dialogues for destructive actions to mitigate accidental data loss.
+* **Zero-State Fallback**: Implemented a call-to-action (CTA) interface for empty data states, improving user retention and engagement.
+
 ## Security & Content Workflow
 <p>Established a secure, authenticated authoring pipeline.</p>
 
 * **Client-Side Authorization**: Implemented automated token verification on component mount to prevent unauthorized access to authoring tools.
 * **JWT Integration**: Standardized API requests with Bearer Token headers, ensuring full compatibility with the backend's Passport/JWT middleware.
 * **Asynchronous UX**: Optimized the submission lifecycle with success-based navigation, routing users back to the global feed post-publication.
+
+Core Implementation Details
+1. Backend Infrastructure (RESTful API)
+Authentication: Implemented JWT (JSON Web Tokens) for stateless authentication. Passwords are secured using bcrypt.js hashing.
+
+Relational Mapping: Established a 1-to-many relationship where posts are mapped to authors via MongoDB ObjectIDs.
+
+Middleware: Integrated verifyToken to protect sensitive CRUD operations (Create, Edit, Delete).
+
+2. Dynamic Community Feed
+State Management: Leveraged React Hooks (useState, useEffect, useCallback) to manage post data and loading states.
+
+Ownership Logic: Integrated conditional rendering so that 'Edit' and 'Delete' triggers only appear for the original author of a post.
+
+Defensive UI: Utilized window.confirm for destructive actions to prevent accidental data loss.
+
+3. Advanced Features & Bonus Tasks
+Cross-Collection Search (Bonus 5.b): Built a MongoDB Aggregation Pipeline using $lookup and $match. This enables real-time searching for posts by both Title and Author Username.
+
+Relative Date Formatting (Bonus 5.d): Implemented a custom helper function to display user-friendly dates (e.g., "Just now", "2h ago").
+
+Custom 404 Page (Bonus 5.e): Developed a dedicated "Not Found" component and catch-all routing to improve site navigation.
+
+Debounced API Calls: Optimized performance by adding a 500ms delay to search queries to reduce unnecessary server load.
