@@ -28,6 +28,27 @@
 
 * **Module System**: Configured the project to use <b>ES Modules</b> by adding "type": "module" to the package settings, allowing for modern import and export syntax.<br>
 
+# Folder Structure:
+<p>The project is strictly divided into two main subdirectories: /backend and /frontend. The Backend houses the RESTful API, featuring a server.js entry point, a .env file for secure environment variables like MONGO_URI, and dedicated folders for Mongoose models (User and Post) and Express routes. It also includes a middleware folder containing the verifyToken logic used to protect sensitive CRUD operations.
+
+The Frontend directory contains the React.js application, structured with an src folder that organizes the logic for user interaction and interface. The App.js file acts as the central hub for routing, utilizing the ProtectedRoute helper to gate access to the /profile and /create-post views. Feature-specific components like login.js, Register.js, PostList.js, and Profile.js are kept in the root of src, while reusable UI elements, such as the Navbar and the NotFound 404 handler, are organized within a dedicated Components subfolder. This organized approach ensures that the application remains maintainable, scalable, and meets all technical evaluation criteria. The Backend of this project serves as the engine room, responsible for data persistence, security, and the business logic that powers the entire application. It is a RESTful API built with Node.js and Express.js, using MongoDB as the primary data store.</p>
+
+# Authentication & Security
+The backend manages the entire user lifecycle. When a user registers or logs in, their password is encrypted using bcrypt.js before being stored in the database. Upon a successful login, the server generates a JSON Web Token (JWT). This token acts as a digital "passport" that the frontend must present in the headers of any request to access protected routes like creating or editing a post.
+
+# Data Modeling & Relational Integrity
+Using Mongoose, you have defined structured "Schemas" for Users and Posts. A critical feature of your backend is the Relational Mapping; every post is saved with an author field containing the MongoDB ObjectID of the user who created it.
+
+# Middleware and API Design
+The backend is structured into modular Routes (e.g., /api/auth and /api/posts). You implemented custom Middleware—specifically a verifyToken function—which sits between the request and the controller. It intercepts incoming requests, validates the JWT, and extracts the user’s identity, providing a secure "gatekeeper" for your application's data.
+
+# .env file
+The .env file is a simple text file used to store environment variables—sensitive configuration data that should stay private and separate from your application’s source code.
+* Why is it important?
+1. Security (Requirement 4.f): It prevents you from "hard-coding" sensitive keys. If you type your database password directly into server.js, anyone who sees your code can access your database.</p>
+
+2. Portability: It allows you to use different settings for different environments (e.g., a local database for development and a cloud database for production) without changing the code itself.
+
 ## Initializing the Backend
 <p>The backend serves as the core <b>RESTful API</b>. The following steps were taken inside the <code>/backend</code> directory:</p>
 
@@ -71,13 +92,13 @@
 * **JWT Integration**: Standardized API requests with Bearer Token headers, ensuring full compatibility with the backend's Passport/JWT middleware.
 * **Asynchronous UX**: Optimized the submission lifecycle with success-based navigation, routing users back to the global feed post-publication.
 
-Core Implementation Details
+# Core Implementation Details
 1. Backend Infrastructure (RESTful API)
 Authentication: Implemented JWT (JSON Web Tokens) for stateless authentication. Passwords are secured using bcrypt.js hashing.
 
 Relational Mapping: Established a 1-to-many relationship where posts are mapped to authors via MongoDB ObjectIDs.
 
-Middleware: Integrated verifyToken to protect sensitive CRUD operations (Create, Edit, Delete).
+Middleware: Integrated verifyToken to protect sensitive CRUD operations (Create, Edit, Delete,update).
 
 2. Dynamic Community Feed
 State Management: Leveraged React Hooks (useState, useEffect, useCallback) to manage post data and loading states.
@@ -87,10 +108,20 @@ Ownership Logic: Integrated conditional rendering so that 'Edit' and 'Delete' tr
 Defensive UI: Utilized window.confirm for destructive actions to prevent accidental data loss.
 
 3. Advanced Features & Bonus Tasks
-Cross-Collection Search (Bonus 5.b): Built a MongoDB Aggregation Pipeline using $lookup and $match. This enables real-time searching for posts by both Title and Author Username.
+Cross-Collection Search : Built a MongoDB Aggregation Pipeline using $lookup and $match. This enables real-time searching for posts by both Title and Author Username.
 
-Relative Date Formatting (Bonus 5.d): Implemented a custom helper function to display user-friendly dates (e.g., "Just now", "2h ago").
+Relative Date Formatting: Implemented a custom helper function to display user-friendly dates (e.g., "Just now", "2h ago").
 
-Custom 404 Page (Bonus 5.e): Developed a dedicated "Not Found" component and catch-all routing to improve site navigation.
+Custom 404 Page : Developed a dedicated "Not Found" component and catch-all routing to improve site navigation.
 
 Debounced API Calls: Optimized performance by adding a 500ms delay to search queries to reduce unnecessary server load.
+# Running of Project:
+
+### Backend
+1. Open a terminal in the `/backend` folder.
+2. Run `node server.js` (or `npm start` if configured) to launch the API on port 5000.
+
+### Frontend
+1. Open a terminal in the `/frontend` folder.
+2. Run `npm start` to launch the React development server on port 3000.
+
