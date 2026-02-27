@@ -10,7 +10,7 @@ import About from './About.js';
 import EditPost from './EditPost.js';
 import NotFound from './Components/NotFound.js';
 import Profile from './Profile.js';
-// Requirement 1.g: Protected Route Helper Component
+// Protected Route Helper Component
 const ProtectedRoute = ({ isLoggedIn, children }) => {
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -23,7 +23,7 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   useEffect(() => {
-    // Requirement 2.a.iv: Authentication State Persistence
+    // Authentication State Persistence
     setIsLoggedIn(!!localStorage.getItem('token'));
     document.body.setAttribute('data-theme', theme);
   }, [theme]);
@@ -35,7 +35,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Requirement 2.b.v: Confirmation prompt
+    // Confirmation prompt
     if (window.confirm("Are you sure you want to log out?")) {
       // Requirement 2.a.iii: Secure logout
       localStorage.removeItem('token');
@@ -90,5 +90,6 @@ function App() {
     </Router>
   );
 }
+
 
 export default App;
