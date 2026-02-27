@@ -16,7 +16,7 @@ function Login({ setIsLoggedIn }) {
             const response = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
 
             if (response.data.token) {
-                // Requirement 2.a.iv: Persistence
+              
                 localStorage.setItem('token', response.data.token);
                 localStorage.setItem('userId', response.data.user.id); 
                 
@@ -27,7 +27,7 @@ function Login({ setIsLoggedIn }) {
                 navigate('/'); 
             }
         } catch (error) {
-            // Requirement 3.e.ii: Clear Error Feedback
+            // Clear Error Feedback
             const message = error.response?.data?.message || "Server unreachable.";
             alert('Login Failed: ' + message);
         } finally {
@@ -70,4 +70,5 @@ function Login({ setIsLoggedIn }) {
 }
 
  
+
 export default Login;
