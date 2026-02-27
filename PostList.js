@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-/** * Bonus Requirement 5.d: Date Formatting
+/*Date Formatting
  * Converts ISO date strings into relative time (e.g., "5m ago").
  */
 const formatRelativeDate = (dateString) => {
@@ -71,7 +71,7 @@ function PostList() {
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', color: 'var(--text-color)' }}>
             <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Community Feed</h2>
             
-            {/* Bonus Task 5.b: Search Functionality */}
+          
             <div style={{ marginBottom: '30px' }}>
                 <input
                     type="text"
@@ -91,7 +91,7 @@ function PostList() {
                 </div>
             ) : (
                 posts.map((post) => {
-                    // Requirement 2.b.iv & 2.b.v: Ownership Check
+                    // Ownership Check
                     const isAuthor = currentUserId && post.author && (
                         (post.author._id === currentUserId) || (post.author === currentUserId)
                     );
@@ -101,7 +101,7 @@ function PostList() {
                             <h3 style={{ marginTop: '0' }}>{post.title}</h3>
                             <p>{post.content}</p>
                             
-                            {/* Requirement 2.b.ii: Display author and date */}
+                            {/*  Display author and date */}
                             <small style={{ display: 'block', marginTop: '15px', color: '#888' }}>
                                 By: <strong>{post.author?.username || "Anonymous"}</strong> | {formatRelativeDate(post.createdAt)}
                             </small>
@@ -120,11 +120,12 @@ function PostList() {
     );
 }
 
-// Styling (Requirement 3.f: Minimalistic Styling)
+// Styling 
 const searchBarStyle = { width: '100%', padding: '12px 20px', borderRadius: '30px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', fontSize: '16px', outline: 'none' };
 const cardStyle = { border: '1px solid var(--border-color)', padding: '25px', marginBottom: '20px', borderRadius: '12px', backgroundColor: 'var(--card-bg)' };
 const clearButtonStyle = { padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', marginTop: '10px' };
 const editButtonStyle = { backgroundColor: '#ffc107', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
 const deleteButtonStyle = { backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
+
 
 export default PostList;
