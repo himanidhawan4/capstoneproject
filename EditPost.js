@@ -9,7 +9,7 @@ function EditPost() {
     const [content, setContent] = useState('');
 
     useEffect(() => {
-        // Fetch the specific post to edit [Requirement 2.b.i variant]
+        // Fetch the specific post to edit 
         const fetchPost = async () => {
             try {
                 const res = await axios.get(`http://127.0.0.1:5000/api/posts`);
@@ -30,7 +30,7 @@ function EditPost() {
         e.preventDefault();
         const token = localStorage.getItem('token');
         try {
-            // Requirement 2.b.iv: EDIT POST logic
+            //  EDIT POST logic
             await axios.put(`http://127.0.0.1:5000/api/posts/${id}`, 
                 { title, content },
                 { headers: { Authorization: `Bearer ${token}` } }
@@ -85,5 +85,6 @@ function EditPost() {
         </div>
     );
 }
+
 
 export default EditPost;
