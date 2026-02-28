@@ -1,0 +1,112 @@
+MongoDB Queries for Capstone Project
+1. User Authentication
+Find a user by username (used during Login):
+db.users.findOne({ "username": "Himani04" });
+2. Community Feed
+Fetch all posts and include author details (Populate):
+db.posts.aggregate([
+  {
+    $lookup: {
+      from: "users",
+      localField: "author",
+      foreignField: "_id",
+      as: "authorDetails"
+    }
+  },
+  { $unwind: "$authorDetails" }
+]);
+3. Create a New Post
+Insert a document into the posts collection:
+db.posts.insertOne({
+  "title": "My First Successful MERN Post",
+  "content": "This is a milestone for my capstone project.",
+  "author": ObjectId("69a1771549d582a21167dd90"),
+  "createdAt": ISODate("2026-02-27T11:21:42.374Z"),
+  "updatedAt": ISODate("2026-02-27T11:21:42.374Z")
+});
+4. Cross-Collection Search
+db.posts.aggregate([
+  {
+    $lookup: {
+      from: "users",
+      localField: "author",
+      foreignField: "_id",
+      as: "authorInfo"
+    }
+  },
+  { $unwind: "$authorInfo" },
+  {
+    $match: {
+      $or: [
+        { "title": { $regex: "MERN", $options: "i" } },
+        { "authorInfo.username": { $regex: "MERN", $options: "i" } }
+      ]
+    }
+  }
+]);
+Gemini said
+For your queries.txt file, you need to provide the raw MongoDB Shell commands that correspond to the logic in your MERN application. This file proves to the evaluator that you understand how to interact with the database directly.
+
+Create a file named queries.txt in your root directory and paste the following:
+
+MongoDB Queries for Capstone Project
+1. User Authentication (Requirement 2.a)
+Find a user by username (used during Login):
+
+JavaScript
+db.users.findOne({ "username": "Himani04" });
+2. Community Feed (Requirement 2.b.ii)
+Fetch all posts and include author details (Populate):
+
+JavaScript
+db.posts.aggregate([
+  {
+    $lookup: {
+      from: "users",
+      localField: "author",
+      foreignField: "_id",
+      as: "authorDetails"
+    }
+  },
+  { $unwind: "$authorDetails" }
+]);
+3. Create a New Post (Requirement 2.b.i)
+Insert a document into the posts collection:
+
+JavaScript
+db.posts.insertOne({
+  "title": "My First Successful MERN Post",
+  "content": "This is a milestone for my capstone project.",
+  "author": ObjectId("69a1771549d582a21167dd90"),
+  "createdAt": ISODate("2026-02-27T11:21:42.374Z"),
+  "updatedAt": ISODate("2026-02-27T11:21:42.374Z")
+});
+4. Cross-Collection Search (Bonus Task 5.b)
+Search posts by Title OR Author Username (Case-Insensitive):
+
+JavaScript
+db.posts.aggregate([
+  {
+    $lookup: {
+      from: "users",
+      localField: "author",
+      foreignField: "_id",
+      as: "authorInfo"
+    }
+  },
+  { $unwind: "$authorInfo" },
+  {
+    $match: {
+      $or: [
+        { "title": { $regex: "MERN", $options: "i" } },
+        { "authorInfo.username": { $regex: "MERN", $options: "i" } }
+      ]
+    }
+  }
+]);
+5. User Profile Filtering
+// The ObjectId must match the _id of the currently logged-in user
+db.posts.find({ 
+  "author": ObjectId("69a1771549d582a21167dd90") 
+}).sort({ "createdAt": -1 });
+Search posts by Title OR Author Username
