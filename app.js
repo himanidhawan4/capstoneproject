@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css'; 
 import Navbar from './Components/Navbar.js';
 import Login from './login.js';
@@ -10,7 +10,8 @@ import About from './About.js';
 import EditPost from './EditPost.js';
 import NotFound from './Components/NotFound.js';
 import Profile from './Profile.js';
-// Protected Route Helper Component
+
+//   Protected Route Helper Component
 const ProtectedRoute = ({ isLoggedIn, children }) => {
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -21,10 +22,12 @@ const ProtectedRoute = ({ isLoggedIn, children }) => {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const navigate = useNavigate(); // Added for SPA navigation
 
   useEffect(() => {
-    // Authentication State Persistence
-    setIsLoggedIn(!!localStorage.getItem('token'));
+    //   Authentication State Persistence
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
     document.body.setAttribute('data-theme', theme);
   }, [theme]);
 
@@ -35,18 +38,21 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Confirmation prompt
+    // Requirement 2.b.v: Defensive UI Confirmation
     if (window.confirm("Are you sure you want to log out?")) {
-      // Requirement 2.a.iii: Secure logout
+      // Requirement 2.a.iii: Secure token removal
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       setIsLoggedIn(false); 
-      window.location.href = "/"; 
+      
+      // Navigate to Home instantly without a page reload
+      navigate('/'); 
     }
   };
 
   return (
-    <Router>
+    <>
+      
       <Navbar 
         isLoggedIn={isLoggedIn} 
         setIsLoggedIn={setIsLoggedIn} 
@@ -54,9 +60,10 @@ function App() {
         theme={theme} 
         toggleTheme={toggleTheme} 
       />
+      
       <div className="container">
         <Routes>
-          {/* Requirement 2.b.ii: View All Posts */}
+          {/* Requirement 2.b.ii: Public Community Feed */}
           <Route path="/" element={<PostList />} />
           <Route path="/about" element={<About />} />
           
@@ -64,8 +71,13 @@ function App() {
           <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
           <Route path="/register" element={<Register />} />
           
-          
-          <Route path="/edit-post/:id" element={<EditPost />} />
+          {/* Requirement 2.b.iii: Edit Route (Requires ID) */}
+          <Route path="/edit-post/:id" element={
+            <ProtectedRoute isLoggedIn={isLoggedIn}>
+                <EditPost />
+            </ProtectedRoute>
+          } />
+ 
           <Route
             path="/profile"
             element={
@@ -74,6 +86,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+ 
           <Route 
             path="/create-post" 
             element={
@@ -83,13 +96,12 @@ function App() {
             } 
           />
  
+          {/* Requirement 4.e: 404 Catch-all Route */}
           <Route path="*" element={<NotFound />} />
-          
         </Routes>
       </div>
-    </Router>
+    </>
   );
 }
-
 
 export default App;
