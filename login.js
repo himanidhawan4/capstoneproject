@@ -2,110 +2,109 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-// Define styles BEFORE the component to avoid ReferenceErrors
-const containerStyle = { 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    minHeight: '70vh' 
-};
-
-const formStyle = { 
-    backgroundColor: 'var(--card-bg, #ffffff)', 
-    padding: '40px', 
-    borderRadius: '10px', 
-    boxShadow: '0 4px 15px rgba(0,0,0,0.3)', 
-    width: '100%', 
-    maxWidth: '400px' 
-};
-
-const inputStyle = { 
-    width: '100%', 
-    padding: '12px', 
-    marginBottom: '15px', 
-    borderRadius: '5px', 
-    border: '1px solid var(--border-color, #ccc)', 
-    backgroundColor: 'var(--bg-color, #fff)', 
-    color: 'var(--text-color, #333)', 
-    boxSizing: 'border-box' 
-};
-
-const buttonStyle = { 
-    width: '100%', 
-    padding: '12px', 
-    backgroundColor: '#007bff', 
-    color: 'white', 
-    border: 'none', 
-    borderRadius: '5px', 
-    cursor: 'pointer', 
-    fontWeight: 'bold' 
-};
-
 function Login({ setIsLoggedIn }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
-        e.preventDefault(); 
-        setIsSubmitting(true); 
-        
-        try {
-            const response = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+        e.preventDefault();
+        setIsSubmitting(true);
+        setError('');
 
-            if (response.data.token) {
-               
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('userId', response.data.user.id); 
+        try {
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+            
+            if (res.data.token) {
+                // Persistent Session Storage
+                localStorage.setItem('token', res.data.token);
                 
-                // Requirement 1.g: State Synchronization
-                setIsLoggedIn(true); 
+                // Handling different backend response structures safely
+                const userData = res.data.user || res.data;
+                localStorage.setItem('userId', userData.id || userData._id);
+                localStorage.setItem('username', userData.username);
                 
-                alert('Login Successful!'); 
+                setIsLoggedIn(true);
                 navigate('/'); 
             }
-        } catch (error) {
-            //  Clear Error Feedback
-            const message = error.response?.data?.message || "Server unreachable.";
-            alert('Login Failed: ' + message);
+        } catch (err) {
+            setError(err.response?.data?.message || "Invalid email or password.");
         } finally {
-            setIsSubmitting(false); 
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div style={containerStyle}>
-            <form onSubmit={handleLogin} style={formStyle}>
-                <h2 style={{ color: 'var(--text-color)', marginBottom: '20px', textAlign: 'center' }}>Welcome Back</h2>
-                
-                <input 
-                    type="email" 
-                    placeholder="Email Address" 
-                    style={inputStyle} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                    autoComplete="email"
-                />
-                <input 
-                    type="password" 
-                    placeholder="Password" 
-                    style={inputStyle} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    autoComplete="current-password"
-                />
-                
-                <button 
-                    type="submit" 
-                    style={{...buttonStyle, opacity: isSubmitting ? 0.7 : 1}} 
+        <div className="container" style={{ maxWidth: '400px' }}>
+            <form className="card" onSubmit={handleLogin}>
+                <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome Back</h2>
+
+                {error && <div className="error-msg" style={{color: 'var(--error-red)', textAlign: 'center', marginBottom: '10px'}}>{error}</div>}
+
+                <div className="form-group">
+                    <label className="label">Email Address</label>
+                    <input
+                        className="input"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+
+                <div className="form-group" style={{ position: 'relative' }}>
+                    <label className="label">Password</label>
+                    <input
+                        className="input"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={eyeToggleStyle}
+                    >
+                        {showPassword ? '🙈' : '👁️'}
+                    </button>
+                </div>
+
+                <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: '10px' }}
                     disabled={isSubmitting}
                 >
-                    {isSubmitting ? 'Logging in...' : 'Login'}
+                    {isSubmitting ? 'Verifying...' : 'Sign In'}
                 </button>
+
+                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
+                    Don't have an account? <span 
+                        onClick={() => navigate('/register')} 
+                        style={{ color: 'var(--primary-blue)', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                        Register here
+                    </span>
+                </p>
             </form>
         </div>
     );
 }
+
+const eyeToggleStyle = {
+    position: 'absolute',
+    right: '10px',
+    top: '38px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '18px'
+};
 
 export default Login;
