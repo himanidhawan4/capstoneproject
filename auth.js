@@ -5,7 +5,7 @@ import User from '../models/user.js';
 
 const router = express.Router();
 
-// 1. REGISTER ROUTE (Requirement 2.a.i)
+// 1. REGISTER ROUTE 
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
@@ -23,7 +23,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// 2. LOGIN ROUTE (Requirement 2.a.ii)
+// 2. LOGIN ROUTE
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(400).json({ message: "Invalid email or password" });
 
-        // Create Token (Requirement 4.d)
+        // Create Token 
         // This 'id' is what verifyToken.js looks for to set req.user.id
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -42,5 +42,6 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ message: "Login error: " + err.message });
     }
 });
+
 
 export default router;
