@@ -2,69 +2,109 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-// Added setIsLoggedIn to props to sync state with App.js
 function Login({ setIsLoggedIn }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
-        e.preventDefault(); 
-        try {
-            const response = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+        e.preventDefault();
+        setIsSubmitting(true);
+        setError('');
 
-            // Ensure the backend sends both token and user object
-            if (response.data.token) {
-                // Requirement 2.a.iv: Persistent Auth State
-                localStorage.setItem('token', response.data.token);
-                // Saving userId here allows us to check post ownership in PostList
-                localStorage.setItem('userId', response.data.user.id); 
+        try {
+            const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+            
+            if (res.data.token) {
+                // Persistent Session Storage
+                localStorage.setItem('token', res.data.token);
                 
-                // Update global state instantly so Navbar shows "Sign Out"
-                setIsLoggedIn(true); 
+                // Handling different backend response structures safely
+                const userData = res.data.user || res.data;
+                localStorage.setItem('userId', userData.id || userData._id);
+                localStorage.setItem('username', userData.username);
                 
-                alert('Login Successful!'); // Requirement 3.e.i
-                
-                // Navigate to home without a page reload
+                setIsLoggedIn(true);
                 navigate('/'); 
             }
-        } catch (error) {
-            // Requirement 3.e.ii: Clear error feedback
-            const message = error.response?.data?.message || "Server unreachable.";
-            alert('Login Failed: ' + message);
+        } catch (err) {
+            setError(err.response?.data?.message || "Invalid email or password.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div style={containerStyle}>
-            <form onSubmit={handleLogin} style={formStyle}>
-                <h2 style={{ color: 'var(--text-color)', marginBottom: '20px', textAlign: 'center' }}>Welcome Back</h2>
-                
-                <input 
-                    type="email" 
-                    placeholder="Email Address" 
-                    style={inputStyle} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                />
-                <input 
-                    type="password" 
-                    placeholder="Password" 
-                    style={inputStyle} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                />
-                
-                <button type="submit" style={buttonStyle}>Login</button>
+        <div className="container" style={{ maxWidth: '400px' }}>
+            <form className="card" onSubmit={handleLogin}>
+                <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome Back</h2>
+
+                {error && <div className="error-msg" style={{color: 'var(--error-red)', textAlign: 'center', marginBottom: '10px'}}>{error}</div>}
+
+                <div className="form-group">
+                    <label className="label">Email Address</label>
+                    <input
+                        className="input"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                </div>
+
+                <div className="form-group" style={{ position: 'relative' }}>
+                    <label className="label">Password</label>
+                    <input
+                        className="input"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={eyeToggleStyle}
+                    >
+                        {showPassword ? '🙈' : '👁️'}
+                    </button>
+                </div>
+
+                <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', marginTop: '10px' }}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? 'Verifying...' : 'Sign In'}
+                </button>
+
+                <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px' }}>
+                    Don't have an account? <span 
+                        onClick={() => navigate('/register')} 
+                        style={{ color: 'var(--primary-blue)', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                        Register here
+                    </span>
+                </p>
             </form>
         </div>
     );
 }
 
-// Styling 
-const containerStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '70vh' };
-const formStyle = { backgroundColor: 'var(--card-bg)', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', width: '100%', maxWidth: '400px' };
-const inputStyle = { width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '5px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', boxSizing: 'border-box' };
-const buttonStyle = { width: '100%', padding: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' };
+const eyeToggleStyle = {
+    position: 'absolute',
+    right: '10px',
+    top: '38px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '18px'
+};
 
 export default Login;
