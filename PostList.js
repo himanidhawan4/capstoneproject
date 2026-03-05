@@ -2,129 +2,122 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-/** * Bonus Requirement 5.d: Date Formatting
- * Converts ISO date strings into relative time (e.g., "5m ago").
- */
-const formatRelativeDate = (dateString) => {
-    const now = new Date();
-    const postDate = new Date(dateString);
-    const diffInSeconds = Math.floor((now - postDate) / 1000);
-
-    if (diffInSeconds < 60) return "Just now";
-    
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-
-    return postDate.toLocaleDateString();
-};
-
 function PostList() {
     const [posts, setPosts] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [error, setError] = useState('');
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+
     const navigate = useNavigate();
-
-    const fetchPosts = useCallback(async () => {
-        setLoading(true); 
-        try {
-            const res = await axios.get(`http://127.0.0.1:5000/api/posts?search=${searchTerm}`);
-            setPosts(res.data);
-            setLoading(false);
-        } catch (err) {
-            console.error("Error fetching posts", err);
-            setLoading(false);
-        }
-    }, [searchTerm]);
-
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            fetchPosts();
-        }, 500); 
-
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm, fetchPosts]); 
-
-    const handleDelete = async (postId) => {
-        if (window.confirm("Delete post permanently?")) { // Requirement 2.b.v
-            try {
-                const token = localStorage.getItem('token');
-                await axios.delete(`http://127.0.0.1:5000/api/posts/${postId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                alert("Post deleted successfully!"); // Requirement 3.e.i
-                fetchPosts(); 
-            } catch (err) {
-                alert("Unauthorized or error.");
-            }
-        }
-    };
-
     const currentUserId = localStorage.getItem('userId');
+    const LIMIT = 5;
+
+    // Fixed fetchPosts: it now takes the specific page to fetch as an argument
+    const fetchPosts = useCallback(async (targetPage, isInitial = false) => {
+        if (isInitial) setLoading(true);
+        else setLoadingMore(true);
+
+        try {
+            const res = await axios.get(
+                `http://127.0.0.1:5000/api/posts?search=${searchTerm}&page=${targetPage}&limit=${LIMIT}`
+            );
+
+            if (isInitial) {
+                setPosts(res.data);
+                setPage(2);
+            } else {
+                setPosts(prev => [...prev, ...res.data]);
+                setPage(targetPage + 1);
+            }
+
+            setHasMore(res.data.length === LIMIT);
+        } catch (err) {
+            setError("Failed to fetch posts.");
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+        }
+    }, [searchTerm]); // Only recreate if searchTerm changes
+
+    // Handle Search with Debounce
+    useEffect(() => {
+        const debounce = setTimeout(() => {
+            fetchPosts(1, true); // Always start at page 1 for a new search
+        }, 500);
+        return () => clearTimeout(debounce);
+    }, [searchTerm, fetchPosts]);
+
+    if (loading && posts.length === 0) return <div className="loading-state">Loading community feed...</div>;
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', color: 'var(--text-color)' }}>
-            <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Community Feed</h2>
-            
-            {/* Bonus Task 5.b: Search Functionality */}
-            <div style={{ marginBottom: '30px' }}>
-                <input
-                    type="text"
-                    placeholder="🔍 Search title or author..."
-                    style={searchBarStyle}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+        <div className="container">
+            <input
+                className="input"
+                style={{ borderRadius: '25px', marginBottom: '30px' }}
+                placeholder="🔍 Search stories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
 
-            {loading ? ( // Requirement 3.e.iii: Loading indicators
-                <div style={{ textAlign: 'center', marginTop: '50px' }}><p>Loading stories...</p></div>
-            ) : posts.length === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: '50px' }}>
-                    <p>No results found for "{searchTerm}"</p>
-                    <button onClick={() => setSearchTerm('')} style={clearButtonStyle}>Clear</button>
+            {error && <div className="error-msg">{error}</div>}
+
+            {posts.length === 0 && !loading && (
+                <div className="card" style={{ textAlign: 'center', opacity: 0.6 }}>
+                    No stories found matching your search.
                 </div>
-            ) : (
-                posts.map((post) => {
-                    // Requirement 2.b.iv & 2.b.v: Ownership Check
-                    const isAuthor = currentUserId && post.author && (
-                        (post.author._id === currentUserId) || (post.author === currentUserId)
-                    );
-
-                    return (
-                        <div key={post._id} style={cardStyle}>
-                            <h3 style={{ marginTop: '0' }}>{post.title}</h3>
-                            <p>{post.content}</p>
-                            
-                            {/* Requirement 2.b.ii: Display author and date */}
-                            <small style={{ display: 'block', marginTop: '15px', color: '#888' }}>
-                                By: <strong>{post.author?.username || "Anonymous"}</strong> | {formatRelativeDate(post.createdAt)}
-                            </small>
-
-                            {isAuthor && (
-                                <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
-                                    <button onClick={() => navigate(`/edit-post/${post._id}`)} style={editButtonStyle}>Edit</button>
-                                    <button onClick={() => handleDelete(post._id)} style={deleteButtonStyle}>Delete</button>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })
             )}
+
+            {posts.map(post => {
+                if (!post || !post.title) return null;
+
+                return (
+                    <div key={post._id} className="card">
+                        {/* CLICKABLE TITLE: Navigates to the full PostDetails page */}
+                        <h3 
+                            onClick={() => navigate(`/post/${post._id}`)} 
+                            style={{ cursor: 'pointer', color: 'var(--primary-blue)' }}
+                        >
+                            {post.title}
+                        </h3>
+                        
+                        <p>{post.content?.substring(0, 200) || "No content available."}...</p>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                            <small>By <strong>{post.author?.username || 'Anonymous'}</strong></small>
+                            
+                            {/* READ MORE BUTTON: Another way to navigate */}
+                            <button 
+                                onClick={() => navigate(`/post/${post._id}`)}
+                                className="btn btn-outline"
+                                style={{ padding: '5px 10px', fontSize: '12px' }}
+                            >
+                                Read Full Story
+                            </button>
+                        </div>
+                    </div>
+                );
+            })}
+
+            {/* Load More Section */}
+            <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '40px' }}>
+                {hasMore && !loading && (
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => fetchPosts(page, false)} // Pass current state page
+                        disabled={loadingMore}
+                    >
+                        {loadingMore ? 'Loading...' : 'Load More Stories'}
+                    </button>
+                )}
+                {!hasMore && posts.length > 0 && (
+                    <p style={{ opacity: 0.5, fontSize: '14px' }}>✨ You've reached the end of the feed.</p>
+                )}
+            </div>
         </div>
     );
 }
-
-// Styling (Requirement 3.f: Minimalistic Styling)
-const searchBarStyle = { width: '100%', padding: '12px 20px', borderRadius: '30px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-color)', fontSize: '16px', outline: 'none' };
-const cardStyle = { border: '1px solid var(--border-color)', padding: '25px', marginBottom: '20px', borderRadius: '12px', backgroundColor: 'var(--card-bg)' };
-const clearButtonStyle = { padding: '10px 20px', borderRadius: '5px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', marginTop: '10px' };
-const editButtonStyle = { backgroundColor: '#ffc107', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
-const deleteButtonStyle = { backgroundColor: '#ff4d4d', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
 
 export default PostList;
