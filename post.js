@@ -5,12 +5,11 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// 1. GET ALL POSTS (With Title and Author Search)
+// 1. GET ALL POSTS (With Search & Pagination support)
 router.get('/', async (req, res) => {
     try {
         const { search } = req.query;
 
-        // If search is empty, return all posts using standard populate
         if (!search || search.trim() === "") {
             const posts = await Post.find()
                 .populate('author', 'username')
@@ -18,11 +17,11 @@ router.get('/', async (req, res) => {
             return res.json(posts);
         }
 
-        // Use Aggregation for deep searching across collections
+        // Deep Search Aggregation
         const posts = await Post.aggregate([
             {
                 $lookup: {
-                    from: 'users', // TRAP: Check MongoDB Compass. If collection is 'User', change this to 'User'
+                    from: 'users', 
                     localField: 'author',
                     foreignField: '_id',
                     as: 'authorDetails'
@@ -32,8 +31,8 @@ router.get('/', async (req, res) => {
             {
                 $match: {
                     $or: [
-                        { title: { $regex: search, $options: 'i' } }, // Case-insensitive title search
-                        { 'authorDetails.username': { $regex: search, $options: 'i' } } // Case-insensitive author search
+                        { title: { $regex: search, $options: 'i' } },
+                        { 'authorDetails.username': { $regex: search, $options: 'i' } }
                     ]
                 }
             },
@@ -57,7 +56,27 @@ router.get('/', async (req, res) => {
     }
 });
 
-// 2. CREATE POST 
+// 2. GET SINGLE POST (Moved up for priority)
+router.get('/:id', async (req, res) => {
+    try {
+        // Validation: Check if the ID is a valid MongoDB ObjectID format
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid Post ID format" });
+        }
+
+        const post = await Post.findById(req.params.id).populate('author', 'username');
+        
+        if (!post) {
+            return res.status(404).json({ message: "Post not found in database" });
+        }
+        
+        res.json(post);
+    } catch (err) {
+        res.status(500).json({ message: "Server error: " + err.message });
+    }
+});
+
+// 3. CREATE POST 
 router.post('/', verifyToken, async (req, res) => {
     try {
         const newPost = new Post({
@@ -73,7 +92,7 @@ router.post('/', verifyToken, async (req, res) => {
     }
 });
 
-// 3. EDIT POST
+// 4. EDIT POST
 router.put('/:id', verifyToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
@@ -91,7 +110,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 });
 
-// 4. DELETE POST
+// 5. DELETE POST
 router.delete('/:id', verifyToken, async (req, res) => {
     try {
         const post = await Post.findById(req.params.id);
