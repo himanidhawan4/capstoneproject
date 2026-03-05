@@ -12,17 +12,21 @@ function Profile() {
     useEffect(() => {
         const fetchMyPosts = async () => {
             try {
-                // We reuse the search route by passing the logged-in username
-                const res = await axios.get(`http://127.0.0.1:5000/api/posts?search=${username}`);
-                setMyPosts(res.data);
+
+                const res = await axios.get(`http://127.0.0.1:5000/api/posts`);
+                const filtered = res.data.filter(post =>
+                    (post.author?._id === currentUserId) || (post.author === currentUserId)
+                );
+
+                setMyPosts(filtered);
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching profile posts", err);
                 setLoading(false);
             }
         };
-        fetchMyPosts();
-    }, [username]);
+        if (currentUserId) fetchMyPosts();
+    }, [currentUserId]);
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
