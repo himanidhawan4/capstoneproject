@@ -29,7 +29,7 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
-            // Requirement 3.f: Minimalist & Theme-aware Fallback UI
+            //   Minimalist & Theme-aware Fallback UI
             return (
                 <div className="container" style={{ textAlign: 'center', marginTop: '100px' }}>
                     <div className="card" style={{ borderTop: '4px solid var(--error-red)' }}>
@@ -55,5 +55,6 @@ class ErrorBoundary extends React.Component {
         return this.props.children;
     }
 }
+
 
 export default ErrorBoundary;
