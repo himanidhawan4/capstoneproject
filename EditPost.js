@@ -7,76 +7,118 @@ function EditPost() {
     const navigate = useNavigate();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        // Fetch the specific post to edit [Requirement 2.b.i variant]
         const fetchPost = async () => {
             try {
-                const res = await axios.get(`http://127.0.0.1:5000/api/posts`);
-                // Find the specific post from the list or add a /api/posts/:id route
-                const targetPost = res.data.find(p => p._id === id);
-                if (targetPost) {
-                    setTitle(targetPost.title);
-                    setContent(targetPost.content);
-                }
+                const res = await axios.get(`http://127.0.0.1:5000/api/posts/${id}`);
+                setTitle(res.data.title);
+                setContent(res.data.content);
+                setLoading(false);
             } catch (err) {
-                console.error("Error fetching post data", err);
+                console.error("Primary fetch failed, trying fallback...", err);
+                // Fallback: search within the full posts list
+                try {
+                    const res = await axios.get(`http://127.0.0.1:5000/api/posts`);
+                    const targetPost = res.data.find(p => p._id === id);
+                    if (targetPost) {
+                        setTitle(targetPost.title);
+                        setContent(targetPost.content);
+                        setLoading(false);
+                    } else {
+                        throw new Error("Not found");
+                    }
+                } catch (innerErr) {
+                    alert("Post not found.");
+                    navigate('/');
+                }
             }
         };
         fetchPost();
-    }, [id]);
+    }, [id, navigate]);
 
     const handleUpdate = async (e) => {
         e.preventDefault();
+        
+        // Client-side Validation
+        if (title.trim().length < 3) {
+            setError("Title must be at least 3 characters long.");
+            return;
+        }
+
+        setIsSaving(true);
+        setError('');
         const token = localStorage.getItem('token');
+        
         try {
-            // Requirement 2.b.iv: EDIT POST logic
             await axios.put(`http://127.0.0.1:5000/api/posts/${id}`, 
                 { title, content },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            alert('Blog updated successfully!');
-            navigate('/');
+            navigate('/profile'); // Redirecting to profile often feels more natural after an edit
         } catch (error) {
-            alert('Update failed: ' + (error.response?.data?.message || "Server error"));
+            setError(error.response?.data?.message || "Failed to update post.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
+    if (loading) return <div className="loading-state">Retrieving post data...</div>;
+
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-            <div style={{
-                backgroundColor: 'var(--card-bg)',
-                padding: '40px',
-                borderRadius: '12px',
-                width: '100%',
-                maxWidth: '500px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
-            }}>
-                <h2 style={{ color: 'var(--text-color)', textAlign: 'center', marginBottom: '20px' }}>Edit Your Post</h2>
+        <div className="container">
+            <div className="card">
+                <h2 style={{ textAlign: 'center', marginTop: 0 }}>Edit Your Post</h2>
+                
+                {error && <div className="error-msg">{error}</div>}
+
                 <form onSubmit={handleUpdate}>
-                    <input
-                        type="text"
-                        value={title}
-                        style={{ width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)' }}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                    />
-                    <textarea
-                        value={content}
-                        style={{ width: '100%', height: '150px', padding: '12px', marginBottom: '20px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', resize: 'none' }}
-                        onChange={(e) => setContent(e.target.value)}
-                        required
-                    ></textarea>
+                    <div className="form-group">
+                        <label className="label">Post Title</label>
+                        <input
+                            className="input"
+                            type="text"
+                            value={title}
+                            placeholder="Title"
+                            onChange={(e) => setTitle(e.target.value)}
+                            required
+                            disabled={isSaving}
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label className="label">Story Content</label>
+                        <textarea
+                            className="input"
+                            style={{ height: '200px', resize: 'vertical' }}
+                            value={content}
+                            placeholder="Content"
+                            onChange={(e) => setContent(e.target.value)}
+                            required
+                            disabled={isSaving}
+                        ></textarea>
+                        <div style={{ textAlign: 'right', fontSize: '12px', opacity: 0.6, marginTop: '5px' }}>
+                            Characters: {content.length}
+                        </div>
+                    </div>
+
                     <button
                         type="submit"
-                        style={{ width: '100%', padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                        className="btn btn-primary"
+                        style={{ width: '100%' }}
+                        disabled={isSaving}
                     >
-                        Save Changes
+                        {isSaving ? 'Saving Changes...' : 'Update Post'}
                     </button>
+                    
                     <button
                         type="button"
-                        onClick={() => navigate('/')}
-                        style={{ width: '100%', marginTop: '10px', padding: '12px', backgroundColor: 'transparent', color: 'var(--text-color)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
+                        className="btn btn-outline"
+                        style={{ width: '100%', marginTop: '10px' }}
+                        onClick={() => navigate(-1)}
                     >
                         Cancel
                     </button>
