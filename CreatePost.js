@@ -2,72 +2,68 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-function Login({ setIsLoggedIn }) {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false); // Added for UX
+function CreatePost() {
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleLogin = async (e) => {
-        e.preventDefault(); 
-        setIsSubmitting(true); // Disable button during request
-        
-        try {
-            const response = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
 
-            if (response.data.token) {
-                // Requirement 2.a.iv: Persistence
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('userId', response.data.user.id); 
-                
-                // Requirement 1.g: State Synchronization
-                setIsLoggedIn(true); 
-                
-                alert('Login Successful!'); 
-                navigate('/'); 
-            }
-        } catch (error) {
-            // Requirement 3.e.ii: Clear Error Feedback
-            const message = error.response?.data?.message || "Server unreachable.";
-            alert('Login Failed: ' + message);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post('http://127.0.0.1:5000/api/posts', 
+                { title, content },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            navigate('/');
+        } catch (err) {
+            setError(err.response?.data?.message || "Something went wrong.");
         } finally {
-            setIsSubmitting(false); // Re-enable button
+            setLoading(false);
         }
     };
 
     return (
-        <div style={containerStyle}>
-            <form onSubmit={handleLogin} style={formStyle}>
-                <h2 style={{ color: 'var(--text-color)', marginBottom: '20px', textAlign: 'center' }}>Welcome Back</h2>
+        <div className="container">
+            <form className="card" onSubmit={handleSubmit}>
+                <h2 style={{marginTop: 0}}>Share Your Story</h2>
                 
-                <input 
-                    type="email" 
-                    placeholder="Email Address" 
-                    style={inputStyle} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                    autoComplete="email"
-                />
-                <input 
-                    type="password" 
-                    placeholder="Password" 
-                    style={inputStyle} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                    autoComplete="current-password"
-                />
-                
-                <button 
-                    type="submit" 
-                    style={{...buttonStyle, opacity: isSubmitting ? 0.7 : 1}} 
-                    disabled={isSubmitting}
-                >
-                    {isSubmitting ? 'Logging in...' : 'Login'}
+                {error && <div className="error-msg">{error}</div>}
+
+                <div className="form-group">
+                    <label className="label">Title</label>
+                    <input 
+                        className="input" 
+                        value={title} 
+                        onChange={(e) => setTitle(e.target.value)} 
+                        required 
+                        disabled={loading}
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label className="label">Content</label>
+                    <textarea 
+                        className="input" 
+                        style={{minHeight: '200px'}} 
+                        value={content} 
+                        onChange={(e) => setContent(e.target.value)} 
+                        required 
+                        disabled={loading}
+                    />
+                </div>
+
+                <button className="btn btn-primary" type="submit" disabled={loading}>
+                    {loading ? 'Publishing...' : 'Publish Post'}
                 </button>
             </form>
         </div>
     );
 }
 
- 
-export default Login;
+export default CreatePost;
