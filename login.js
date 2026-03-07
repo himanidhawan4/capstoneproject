@@ -19,12 +19,11 @@ function Login({ setIsLoggedIn }) {
             const res = await axios.post('http://127.0.0.1:5000/api/auth/login', { email, password });
             
             if (res.data.token) {
-                // Persistent Session Storage
                 localStorage.setItem('token', res.data.token);
-                
-                // Handling different backend response structures safely
                 const userData = res.data.user || res.data;
-                localStorage.setItem('userId', userData.id || userData._id);
+                const idToStore = userData.id || userData._id;
+                
+                localStorage.setItem('userId', idToStore);
                 localStorage.setItem('username', userData.username);
                 
                 setIsLoggedIn(true);
@@ -38,11 +37,11 @@ function Login({ setIsLoggedIn }) {
     };
 
     return (
-        <div className="container" style={{ maxWidth: '400px' }}>
+        <div className="container" style={{ maxWidth: '400px', marginTop: '50px' }}>
             <form className="card" onSubmit={handleLogin}>
                 <h2 style={{ textAlign: 'center', marginTop: 0 }}>Welcome Back</h2>
 
-                {error && <div className="error-msg" style={{color: 'var(--error-red)', textAlign: 'center', marginBottom: '10px'}}>{error}</div>}
+                {error && <div className="error-msg">{error}</div>}
 
                 <div className="form-group">
                     <label className="label">Email Address</label>
@@ -78,7 +77,7 @@ function Login({ setIsLoggedIn }) {
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    style={{ width: '100%', marginTop: '10px' }}
+                    style={{ width: '100%' }}
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? 'Verifying...' : 'Sign In'}
@@ -100,7 +99,7 @@ function Login({ setIsLoggedIn }) {
 const eyeToggleStyle = {
     position: 'absolute',
     right: '10px',
-    top: '38px',
+    top: '38px',  
     background: 'none',
     border: 'none',
     cursor: 'pointer',
