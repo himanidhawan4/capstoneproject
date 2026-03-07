@@ -5,122 +5,123 @@ import { useParams, useNavigate } from 'react-router-dom';
 function EditPost() {
     const { id } = useParams();
     const navigate = useNavigate();
+
+    // State Management
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    
+    // Feedback & Responsiveness States (Instructor Requirement)
+    const [loading, setLoading] = useState(true);      // Initial data fetch
+    const [isUpdating, setIsUpdating] = useState(false); // Submission status
     const [error, setError] = useState('');
 
+    const token = localStorage.getItem('token');
+
+    // 1. Fetch existing post data on mount
     useEffect(() => {
         const fetchPost = async () => {
             try {
                 const res = await axios.get(`http://127.0.0.1:5000/api/posts/${id}`);
                 setTitle(res.data.title);
                 setContent(res.data.content);
-                setLoading(false);
             } catch (err) {
-                console.error("Primary fetch failed, trying fallback...", err);
-                // Fallback: search within the full posts list
-                try {
-                    const res = await axios.get(`http://127.0.0.1:5000/api/posts`);
-                    const targetPost = res.data.find(p => p._id === id);
-                    if (targetPost) {
-                        setTitle(targetPost.title);
-                        setContent(targetPost.content);
-                        setLoading(false);
-                    } else {
-                        throw new Error("Not found");
-                    }
-                } catch (innerErr) {
-                    alert("Post not found.");
-                    navigate('/');
-                }
+                setError("Could not load the post for editing.");
+            } finally {
+                setLoading(false);
             }
         };
         fetchPost();
-    }, [id, navigate]);
+    }, [id]);
 
+    // 2. Handle Update with Validation
     const handleUpdate = async (e) => {
         e.preventDefault();
-        
-        // Client-side Validation
-        if (title.trim().length < 3) {
-            setError("Title must be at least 3 characters long.");
-            return;
+        if (title.trim().length < 5) {
+            return setError("Title must be at least 5 characters long.");
+        }
+        if (content.trim().length < 20) {
+            return setError("Content must be at least 20 characters long.");
         }
 
-        setIsSaving(true);
-        setError('');
-        const token = localStorage.getItem('token');
-        
+        setError(''); 
+        setIsUpdating(true);  
         try {
-            await axios.put(`http://127.0.0.1:5000/api/posts/${id}`, 
+            await axios.put(
+                `http://127.0.0.1:5000/api/posts/${id}`,
                 { title, content },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            navigate('/profile'); // Redirecting to profile often feels more natural after an edit
-        } catch (error) {
-            setError(error.response?.data?.message || "Failed to update post.");
+            // Redirect back to the specific post after saving
+            navigate(`/post/${id}`); 
+        } catch (err) {
+            // Consistent API Error Handling
+            setError(err.response?.data?.message || "Failed to update post. Try again.");
         } finally {
-            setIsSaving(false);
+            setIsUpdating(false); // END RESPONSIVENESS
         }
     };
 
-    if (loading) return <div className="loading-state">Retrieving post data...</div>;
+    if (loading) return <div className="container">Loading post data...</div>;
 
     return (
         <div className="container">
-            <div className="card">
-                <h2 style={{ textAlign: 'center', marginTop: 0 }}>Edit Your Post</h2>
-                
-                {error && <div className="error-msg">{error}</div>}
+            <div className="card" style={{ maxWidth: '600px', margin: '40px auto', padding: '30px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h2>Edit Post</h2>
+                    <button onClick={() => navigate(-1)} className="btn-link">Cancel</button>
+                </div>
+
+                {/* VISUAL FEEDBACK BOX   */}
+                {error && (
+                    <div style={{ 
+                        color: '#721c24', 
+                        background: '#f8d7da', 
+                        padding: '12px', 
+                        borderRadius: '8px', 
+                        marginBottom: '20px',
+                        border: '1px solid #f5c6cb' 
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 <form onSubmit={handleUpdate}>
-                    <div className="form-group">
-                        <label className="label">Post Title</label>
+                    <div style={{ marginBottom: '15px' }}>
+                        <label style={{ fontWeight: 'bold' }}>Title</label>
                         <input
                             className="input"
-                            type="text"
                             value={title}
-                            placeholder="Title"
                             onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Min 5 characters"
                             required
-                            disabled={isSaving}
                         />
                     </div>
-                    
-                    <div className="form-group">
-                        <label className="label">Story Content</label>
+
+                    <div style={{ marginBottom: '10px' }}>
+                        <label style={{ fontWeight: 'bold' }}>Content</label>
                         <textarea
                             className="input"
-                            style={{ height: '200px', resize: 'vertical' }}
+                            style={{ minHeight: '250px' }}
                             value={content}
-                            placeholder="Content"
                             onChange={(e) => setContent(e.target.value)}
+                            placeholder="Min 20 characters"
                             required
-                            disabled={isSaving}
-                        ></textarea>
-                        <div style={{ textAlign: 'right', fontSize: '12px', opacity: 0.6, marginTop: '5px' }}>
-                            Characters: {content.length}
-                        </div>
+                        />
                     </div>
 
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
+                    {/* CHARACTER COUNTER  */}
+                    <p style={{ fontSize: '0.8rem', opacity: 0.6, textAlign: 'right', marginBottom: '20px' }}>
+                        {content.length} characters
+                    </p>
+
+                    {/* ENHANCED RESPONSIVENESS: Button state change */}
+                    <button 
+                        type="submit" 
+                        className="btn btn-primary" 
+                        disabled={isUpdating}
                         style={{ width: '100%' }}
-                        disabled={isSaving}
                     >
-                        {isSaving ? 'Saving Changes...' : 'Update Post'}
-                    </button>
-                    
-                    <button
-                        type="button"
-                        className="btn btn-outline"
-                        style={{ width: '100%', marginTop: '10px' }}
-                        onClick={() => navigate(-1)}
-                    >
-                        Cancel
+                        {isUpdating ? "Saving Changes..." : "Update Post"}
                     </button>
                 </form>
             </div>
