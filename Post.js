@@ -11,15 +11,24 @@ const PostSchema = new mongoose.Schema({
         required: [true, "Journal content cannot be empty"]
     },
     author: {
-        type: mongoose.Schema.Types.ObjectId, // Connects to the User's unique ID
-        ref: 'User', // Tells Mongoose which model this ID belongs to
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
         required: true
     },
     tags: {
         type: [String],
         default: []
-    }
-    , // Optional: to categorize posts like #work or #personal
+    },
+
+    // Refined: Explicitly defining these as ID arrays for better querying
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    dislikes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
+
+    comments: [{
+        text: { type: String, required: true },
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        createdAt: { type: Date, default: Date.now }
+    }]
 }, { timestamps: true });
 
 export default mongoose.model("Post", PostSchema);
