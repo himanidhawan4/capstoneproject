@@ -7,115 +7,140 @@ function PostList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState('');
     const [page, setPage] = useState(1);
-    const [hasMore, setHasMore] = useState(true);
+    const [totalPages, setTotalPages] = useState(1);
+    const [filterMine, setFilterMine] = useState(false);
 
     const navigate = useNavigate();
     const currentUserId = localStorage.getItem('userId');
-    const LIMIT = 5;
+    const LIMIT = 6;
 
-    // Fixed fetchPosts: it now takes the specific page to fetch as an argument
     const fetchPosts = useCallback(async (targetPage, isInitial = false) => {
-        if (isInitial) setLoading(true);
-        else setLoadingMore(true);
-
+        if (isInitial) setLoading(true); else setLoadingMore(true);
         try {
-            const res = await axios.get(
-                `http://127.0.0.1:5000/api/posts?search=${searchTerm}&page=${targetPage}&limit=${LIMIT}`
-            );
+            // Using the new pagination + search API format
+            const res = await axios.get(`http://127.0.0.1:5000/api/posts?search=${searchTerm}&page=${targetPage}&limit=${LIMIT}`);
+            
+            // Safety check: Ensure res.data and res.data.posts exist
+            const fetchedPosts = res.data?.posts || [];
+            const total = res.data?.totalPages || 1;
 
             if (isInitial) {
-                setPosts(res.data);
+                setPosts(fetchedPosts);
                 setPage(2);
             } else {
-                setPosts(prev => [...prev, ...res.data]);
+                setPosts(prev => [...prev, ...fetchedPosts]);
                 setPage(targetPage + 1);
             }
-
-            setHasMore(res.data.length === LIMIT);
+            setTotalPages(total);
         } catch (err) {
-            setError("Failed to fetch posts.");
+            console.error("Fetch error:", err);
         } finally {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [searchTerm]); // Only recreate if searchTerm changes
+    }, [searchTerm]);
 
-    // Handle Search with Debounce
     useEffect(() => {
         const debounce = setTimeout(() => {
-            fetchPosts(1, true); // Always start at page 1 for a new search
+            fetchPosts(1, true);
         }, 500);
         return () => clearTimeout(debounce);
     }, [searchTerm, fetchPosts]);
 
-    if (loading && posts.length === 0) return <div className="loading-state">Loading community feed...</div>;
+    const handleLikeAction = async (postId, type) => {
+        const token = localStorage.getItem('token');
+        if (!token) return alert("Please log in!");
+        try {
+            await axios.put(`http://127.0.0.1:5000/api/posts/${postId}/${type}`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            updateLocalPost(postId, type);
+        } catch (err) { console.error(err); }
+    };
+
+    const updateLocalPost = (postId, type) => {
+        setPosts(prev => prev.map(p => {
+            if (p._id === postId) {
+                const isLiked = p.likes?.includes(currentUserId);
+                const isDisliked = p.dislikes?.includes(currentUserId);
+                
+                if (type === 'like') {
+                    return {
+                        ...p,
+                        likes: isLiked ? p.likes.filter(id => id !== currentUserId) : [...(p.likes || []), currentUserId],
+                        dislikes: (p.dislikes || []).filter(id => id !== currentUserId)
+                    };
+                } else {
+                    return {
+                        ...p,
+                        dislikes: isDisliked ? p.dislikes.filter(id => id !== currentUserId) : [...(p.dislikes || []), currentUserId],
+                        likes: (p.likes || []).filter(id => id !== currentUserId)
+                    };
+                }
+            }
+            return p;
+        }));
+    };
+
+    const displayedPosts = filterMine 
+        ? posts.filter(p => String(p.author?._id || p.author) === String(currentUserId))
+        : posts;
+
+    if (loading && posts.length === 0) return <div className="container">Loading stories...</div>;
 
     return (
         <div className="container">
-            <input
-                className="input"
-                style={{ borderRadius: '25px', marginBottom: '30px' }}
-                placeholder="🔍 Search stories..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div style={{ marginBottom: '20px' }}>
+                <input
+                    className="input"
+                    style={{ borderRadius: '25px', padding: '12px 20px' }}
+                    placeholder="🔍 Search stories..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
 
-            {error && <div className="error-msg">{error}</div>}
+            <div style={{ marginBottom: '25px', display: 'flex', gap: '10px' }}>
+                <button className={`btn ${!filterMine ? 'btn-primary' : 'btn-outline'}`} onClick={() => setFilterMine(false)}>Public Feed</button>
+                <button className={`btn ${filterMine ? 'btn-primary' : 'btn-outline'}`} onClick={() => setFilterMine(true)}>My Stories</button>
+            </div>
 
-            {posts.length === 0 && !loading && (
-                <div className="card" style={{ textAlign: 'center', opacity: 0.6 }}>
-                    No stories found matching your search.
-                </div>
-            )}
+            <div className="post-list">
+                {displayedPosts.length > 0 ? (
+                    displayedPosts.map(post => {
+                         
+                        const isLiked = post.likes?.includes(currentUserId);
+                        const isAuthor = String(currentUserId) === String(post.author?._id || post.author);
 
-            {posts.map(post => {
-                if (!post || !post.title) return null;
-
-                return (
-                    <div key={post._id} className="card">
-                        {/* CLICKABLE TITLE: Navigates to the full PostDetails page */}
-                        <h3 
-                            onClick={() => navigate(`/post/${post._id}`)} 
-                            style={{ cursor: 'pointer', color: 'var(--primary-blue)' }}
-                        >
-                            {post.title}
-                        </h3>
-                        
-                        <p>{post.content?.substring(0, 200) || "No content available."}...</p>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                            <small>By <strong>{post.author?.username || 'Anonymous'}</strong></small>
-                            
-                            {/* READ MORE BUTTON: Another way to navigate */}
-                            <button 
-                                onClick={() => navigate(`/post/${post._id}`)}
-                                className="btn btn-outline"
-                                style={{ padding: '5px 10px', fontSize: '12px' }}
-                            >
-                                Read Full Story
-                            </button>
-                        </div>
-                    </div>
-                );
-            })}
-
-            {/* Load More Section */}
-            <div style={{ textAlign: 'center', marginTop: '30px', paddingBottom: '40px' }}>
-                {hasMore && !loading && (
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => fetchPosts(page, false)} // Pass current state page
-                        disabled={loadingMore}
-                    >
-                        {loadingMore ? 'Loading...' : 'Load More Stories'}
-                    </button>
-                )}
-                {!hasMore && posts.length > 0 && (
-                    <p style={{ opacity: 0.5, fontSize: '14px' }}>✨ You've reached the end of the feed.</p>
+                        return (
+                            <div key={post._id} className="card" style={{ marginBottom: '20px' }}>
+                                <h3 onClick={() => navigate(`/post/${post._id}`)} style={{ cursor: 'pointer' }}>{post.title}</h3>
+                                <p>{post.content?.substring(0, 150)}...</p>
+                                <div className="post-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <small>By <strong>{post.author?.username || 'User'}</strong></small>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button onClick={() => handleLikeAction(post._id, 'like')} className={`btn-small ${isLiked ? 'active' : ''}`}>
+                                            👍 {post.likes?.length || 0}
+                                        </button>
+                                        <button onClick={() => navigate(`/post/${post._id}`)} className="btn btn-outline btn-small">View</button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                ) : (
+                    <p>No stories found.</p>
                 )}
             </div>
+
+            {page <= totalPages && !filterMine && (
+                <div style={{ textAlign: 'center', marginTop: '30px' }}>
+                    <button className="btn btn-outline" onClick={() => fetchPosts(page)} disabled={loadingMore}>
+                        {loadingMore ? 'Loading...' : 'Load More'}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
